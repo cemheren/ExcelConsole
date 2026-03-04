@@ -131,4 +131,84 @@ public class GridManager
 
         return hasNumber ? product : null;
     }
+
+    public void SaveToCsv(string path)
+    {
+        using var writer = new StreamWriter(path);
+        for (int r = 0; r < RowCount; r++)
+        {
+            var fields = new string[ColumnCount];
+            for (int c = 0; c < ColumnCount; c++)
+                fields[c] = EscapeCsvField(_data[r, c]);
+            writer.WriteLine(string.Join(",", fields));
+        }
+    }
+
+    public void LoadFromCsv(string path)
+    {
+        if (!File.Exists(path)) return;
+        var lines = File.ReadAllLines(path);
+        for (int r = 0; r < Math.Min(lines.Length, RowCount); r++)
+        {
+            var fields = ParseCsvLine(lines[r]);
+            for (int c = 0; c < Math.Min(fields.Count, ColumnCount); c++)
+                _data[r, c] = fields[c];
+        }
+    }
+
+    private static string EscapeCsvField(string field)
+    {
+        if (field.Contains(',') || field.Contains('"') || field.Contains('\n'))
+            return "\"" + field.Replace("\"", "\"\"") + "\"";
+        return field;
+    }
+
+    private static List<string> ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        int i = 0;
+        while (i <= line.Length)
+        {
+            if (i == line.Length) { fields.Add(""); break; }
+
+            if (line[i] == '"')
+            {
+                // Quoted field
+                i++;
+                var field = new System.Text.StringBuilder();
+                while (i < line.Length)
+                {
+                    if (line[i] == '"')
+                    {
+                        if (i + 1 < line.Length && line[i + 1] == '"')
+                        {
+                            field.Append('"');
+                            i += 2;
+                        }
+                        else
+                        {
+                            i++; // closing quote
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        field.Append(line[i]);
+                        i++;
+                    }
+                }
+                fields.Add(field.ToString());
+                if (i < line.Length && line[i] == ',') i++; // skip comma
+            }
+            else
+            {
+                // Unquoted field
+                int start = i;
+                while (i < line.Length && line[i] != ',') i++;
+                fields.Add(line[start..i]);
+                if (i < line.Length) i++; // skip comma
+            }
+        }
+        return fields;
+    }
 }

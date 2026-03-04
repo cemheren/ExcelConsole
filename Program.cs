@@ -1,4 +1,5 @@
 using ExcelConsole;
 
-var app = new SpreadsheetApp();
+string? csvPath = args.Length > 0 ? args[0] : null;
+var app = new SpreadsheetApp(csvPath);
 app.Run();

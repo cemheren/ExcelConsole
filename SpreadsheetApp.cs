@@ -6,15 +6,20 @@ public class SpreadsheetApp
     private int _selectedRow;
     private int _selectedCol;
     private string _clipboard = "";
+    private string? _loadedFile;
     private const int MinColWidth = 10;
     private const int RowHeaderWidth = 4;
 
-    public SpreadsheetApp()
+    public SpreadsheetApp(string? csvPath = null)
     {
         int w = Console.WindowWidth;
         int h = Console.WindowHeight;
-        // Reserve: 1 header row, 1 header underline, 1 status bar
         _grid = new GridManager(w, h - 3);
+        if (csvPath is not null)
+        {
+            _loadedFile = csvPath;
+            _grid.LoadFromCsv(csvPath);
+        }
     }
 
     private int[] GetColumnWidths()
@@ -73,8 +78,11 @@ public class SpreadsheetApp
                         _grid.ShiftRowsUp(_selectedRow);
                         break;
                     case ConsoleKey.H:
-                    case ConsoleKey.Backspace: // Ctrl+H sends Backspace on Linux
+                    case ConsoleKey.Backspace:
                         ShowHelp();
+                        break;
+                    case ConsoleKey.S:
+                        PromptSave();
                         break;
                 }
                 Render();
@@ -269,8 +277,11 @@ public class SpreadsheetApp
             "  ║  Ctrl+D         Delete row               ║",
             "  ║  Ctrl+O         Insert row (shift down)  ║",
             "  ║  Ctrl+P         Remove row (shift up)    ║",
+            "  ║  Ctrl+S         Save to CSV              ║",
             "  ║  Ctrl+H         Show this help           ║",
             "  ║  Ctrl+Q         Quit                     ║",
+            "  ║                                          ║",
+            "  ║  Usage: dotnet run [file.csv]            ║",
             "  ║                                          ║",
             "  ╚══════════════════════════════════════════╝",
             "",
@@ -281,5 +292,58 @@ public class SpreadsheetApp
             Console.WriteLine(line);
 
         Console.ReadKey(intercept: true);
+    }
+
+    private void PromptSave()
+    {
+        int statusY = Console.WindowHeight - 1;
+        Console.SetCursorPosition(0, statusY);
+        Console.BackgroundColor = ConsoleColor.White;
+        Console.ForegroundColor = ConsoleColor.Black;
+        int totalWidth = Console.WindowWidth;
+
+        string defaultName = _loadedFile ?? "spreadsheet.csv";
+        Console.Write($" Save as [{defaultName}]: ".PadRight(totalWidth));
+        Console.SetCursorPosition($" Save as [{defaultName}]: ".Length, statusY);
+        Console.CursorVisible = true;
+
+        string input = "";
+        while (true)
+        {
+            var k = Console.ReadKey(intercept: true);
+            if (k.Key == ConsoleKey.Enter) break;
+            if (k.Key == ConsoleKey.Escape) { Console.CursorVisible = false; return; }
+            if (k.Key == ConsoleKey.Backspace)
+            {
+                if (input.Length > 0)
+                {
+                    input = input[..^1];
+                    Console.SetCursorPosition($" Save as [{defaultName}]: ".Length, statusY);
+                    Console.Write(input.PadRight(totalWidth - $" Save as [{defaultName}]: ".Length));
+                    Console.SetCursorPosition($" Save as [{defaultName}]: ".Length + input.Length, statusY);
+                }
+                continue;
+            }
+            if (k.KeyChar >= 32 && k.KeyChar <= 126)
+            {
+                input += k.KeyChar;
+                Console.Write(k.KeyChar);
+            }
+        }
+
+        Console.CursorVisible = false;
+        string filename = string.IsNullOrWhiteSpace(input) ? defaultName : input;
+        if (!filename.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            filename += ".csv";
+
+        _grid.SaveToCsv(filename);
+        _loadedFile = filename;
+
+        // Flash confirmation
+        Console.SetCursorPosition(0, statusY);
+        Console.Write($" Saved to {filename} ".PadRight(totalWidth));
+        Console.BackgroundColor = ConsoleColor.Black;
+        Console.ForegroundColor = ConsoleColor.White;
+        Thread.Sleep(1000);
     }
 }

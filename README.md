@@ -24,6 +24,9 @@ cd ExcelConsole
 
 # Run
 dotnet run
+
+# Load a CSV file
+dotnet run -- data.csv
 ```
 
 Requires [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
@@ -43,6 +46,7 @@ Requires [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
 | Ctrl+D | Delete row |
 | Ctrl+O | Insert row (shift down) |
 | Ctrl+P | Remove row (shift up) |
+| Ctrl+S | Save to CSV |
 | Ctrl+H | Show help |
 | Ctrl+Q | Quit |
 
